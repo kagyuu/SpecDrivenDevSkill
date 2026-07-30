@@ -1,0 +1,8 @@
+body { font-family: sans-serif; margin: 0; }
+#app-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: #2c3e50; color: white; }
+#app-nav a { color: white; margin-left: 1rem; text-decoration: none; }
+#app-main { padding: 1rem; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+.error { color: #c0392b; }
+form div { margin-bottom: 0.5rem; }

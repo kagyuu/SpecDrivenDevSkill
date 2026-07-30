@@ -1,0 +1,19 @@
+[project]
+name = "meeting-room-reservation-server"
+version = "0.1.0"
+description = "会議室予約システム バックエンド (docs/03-backend-spec.md 参照)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pydantic>=2.6",
+]
+
+[tool.uv]
+# NOTE: 本検証環境はネットワーク分離のため `uv sync` は未実行。
+# 実装は FastAPI の内部基盤である Starlette + Pydantic (事前インストール済み) で
+# 同等の ASGI REST API として実装している。詳細は docs/06-impl-direction.md 冒頭を参照。
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
