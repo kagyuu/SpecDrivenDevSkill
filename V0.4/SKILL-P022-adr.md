@@ -1,0 +1,42 @@
+---
+name: adr-dev
+description: 仕様駆動でアプリケーションを開発するときに、ADR.mdを整理する。
+---
+
+# ADR整理
+
+## 目的
+
+* 設計上の重要な決定(技術選定、代替案の却下理由など)を `docs/ADR.md` に整理し、最終的にその仕様になった理由をLLMが読み込める程度に簡潔にまとめる。
+* 廃止された決定は `docs/ADR_master.md` に退避し、`docs/ADR.md` には現在有効な決定のみを残す。
+
+## インプット文書
+
+* `docs/P001-requirement.md` 〜 `docs/P009-acceptance-direction.md`
+* `docs/P010-design-review.md` / `docs/P011-impact-analysis.md` (Plan Loop Stepで設計変更があった場合)
+* 既存の `docs/ADR.md` / `docs/ADR_master.md` (あれば)
+
+## アウトプット文書
+
+* `docs/ADR.md`
+* `docs/ADR_master.md` (廃止されたADRがある場合)
+
+### アウトプットの記載内容
+
+* `TEMPLATE-ADR.md` の構成に則る。
+* 初回作成時は、`docs/P002-frontend-spec.md` `docs/P003-backend-spec.md` `docs/P005-impl-plan.md` などから、後戻りできない/コストの高い技術的決定(フレームワーク選定、認証方式、データベース選定、デプロイ方式など)を抽出し、ADRとして1件ずつ整理する。
+* 2回目以降(Plan Loop Stepでの設計修正後、またはRefactorステップからの再入時)は、次を行う。
+  * 新たに決定した事項があれば、新しいADR-NNNとして追記する。
+  * 既存のADRを覆す決定があった場合、そのADRの状態を「廃止」にし、本文を `docs/ADR_master.md` に移動する。移動時に廃止日・廃止理由(どのADRに置き換わったか)を追記する。
+  * 内容が変わらないADRは変更しない。
+* ADR一覧表(`docs/ADR.md` 冒頭)は、常に現在有効なADRのみを反映するよう更新する。
+
+### アウトプットを参照する文書
+
+* `docs/ArchitectureHandbook.md` (P021) が各ADRを技術スタック表から参照する。
+* P002・P003・P012 (設計・設計修正) が、既存の決定を確認する際に参照する。
+* P901〜P905 (Refactor) が、変更要求にともなうADR更新の要否を確認する際に参照する。
+
+## 動作
+
+* 共通指示以外は特になし

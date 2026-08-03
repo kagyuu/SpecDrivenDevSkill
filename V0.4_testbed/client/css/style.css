@@ -1,0 +1,57 @@
+/* 会議室予約システム 基本スタイル (最小限。デザインの精緻化は対象外) */
+body {
+  font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+  margin: 0;
+  background: #f5f6f8;
+  color: #1f2933;
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nav a, .nav button {
+  cursor: pointer;
+}
+
+.form-row {
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.error-message {
+  color: #b00020;
+  margin-top: 8px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #cbd2d9;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.grid-table td.slot-booked {
+  background: #ffe0b2;
+}
+
+.grid-table td.slot-free {
+  background: #ffffff;
+}

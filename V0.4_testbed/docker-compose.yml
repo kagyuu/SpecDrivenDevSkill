@@ -1,0 +1,46 @@
+# docker-compose.yml — 会議室予約システム(server + client + nginxリバースプロキシ)
+#
+# ★P302作成★ 本サンドボックスにはDockerデーモンがなく(`docker info` がソケット接続エラー)、
+# `docker compose up` による実際の起動確認はできていない(server/Dockerfile・nginx.conf参照)。
+# 実行環境での起動確認は人間が行うこと(docs/P302-deliver.md §7・§10参照)。
+#
+# TLS終端はこのcompose構成には含まれていない。本番相当のデプロイでは、この構成の手前に
+# TLS終端(nginx/Caddyのhttps化、クラウドのロードバランサ等)を別途配置し、その場合は
+# server の SESSION_COOKIE_SECURE を既定値(true、未設定)のまま使うこと(docs/ADR.md ADR-004備考参照)。
+# この compose 単体(TLSなし)で動作確認する場合のみ、下記のとおり SESSION_COOKIE_SECURE=false を指定する。
+
+services:
+  server:
+    build:
+      context: ./server
+    environment:
+      DATABASE_PATH: /data/app.db
+      SESSION_COOKIE_SECURE: "false"  # ローカル動作確認用(TLSなし)。本番相当ではこの行を削除しTLS終端を用意すること。
+    volumes:
+      - reservation-data:/data
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    expose:
+      - "8000"
+
+  client:
+    build:
+      context: ./client
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+      - client
+
+volumes:
+  reservation-data:
