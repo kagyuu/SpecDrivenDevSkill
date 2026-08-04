@@ -1,0 +1,48 @@
+---
+name: review-dev
+description: 仕様駆動でアプリケーションを開発するときに、実装横断レビューを行う。
+---
+
+# 実装横断レビュー
+
+## 目的
+
+* P103(結合テスト実行)の結果と、`docs/P009-acceptance-direction.md` にもとづく受け入れ結合テストの実行結果をあわせて確認し、すべてのテストが合格しているかを判定する。
+* 未実施の受け入れ結合テストがあれば、このフェーズの中で `docs/P009-acceptance-direction.md` の該当タスクを実行する。
+
+## インプット文書
+
+* `docs/test-records/*.md` (P103までの実行記録)
+* `docs/P008-test-direction.md` (目次、状態確認用)
+* `docs/P009-acceptance-direction.md` (目次) および各 `A000-{test-name}.md`
+
+## アウトプット文書
+
+* `docs/P201-review-report.md`
+* `docs/test-records/YYYYMMDD-HHMM-test-record.md` (P009のテストを新たに実行した場合、追記)
+
+### アウトプットの記載内容
+
+* `docs/P008-test-direction.md` の全項目が `[x]` になっていることを確認する(なっていなければ、Executor Stepに差し戻す)。
+* `docs/P009-acceptance-direction.md` の目次を確認し、未実施(`[ ]`/`[~]`)の項目があれば `TEMPLATE-P009-acceptance-direction.md` に則った指示どおりに実行し、結果を `TEMPLATE-test-record.md` に定める記録形式で記録する。
+* 直近の全テスト記録(P008・P009双方)を集計し、次の形式で一覧化する。
+
+```markdown
+| テストID | 種別 | 結果 | 記録 |
+|---|---|---|---|
+| T001 | 結合(P008) | PASS | docs/test-records/... |
+| A001 | 受け入れ結合(P009) | FAIL | docs/test-records/... |
+```
+
+* PASS以外(FAIL/BLOCKED/NOT RUN)が1件でもあれば、その一覧を明記し、P202(修正計画)に進む。
+* 全件PASSであれば、その旨を明記し、Closing(P301〜)に進む。
+* 本フェーズを実行した回数(何度目のP201実行か)を明記する。3回目のP201実行でなお全件PASSにならない場合は、その旨を明記して処理を停止し、人間に報告する(Reviewer Loopの停止条件)。
+
+### アウトプットを参照する文書
+
+* `docs/P202-fix-plan.md` (PASS以外がある場合)
+* `docs/P302-deliver.md` (全件PASSの場合)
+
+## 動作
+
+* 共通指示に加えて、上記アウトプット記載内容に定めた事項に従う。
