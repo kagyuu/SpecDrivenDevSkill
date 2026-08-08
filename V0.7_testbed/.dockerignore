@@ -1,0 +1,14 @@
+# イメージに入れないもの(P302)
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/node_modules/
+**/data/
+**/*.db
+**/*.db-wal
+**/*.db-shm
+.git/
+.claude/
+docs/
+deploy/certs/
+.env

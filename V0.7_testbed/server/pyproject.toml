@@ -1,0 +1,22 @@
+[project]
+name = "meeting-room"
+version = "0.1.0"
+description = "会議室予約システム バックエンド(API + フロントエンド静的配信。ADR-010)"
+readme = "README.md"
+authors = [
+    { name = "Claude", email = "noreply@anthropic.com" }
+]
+requires-python = ">=3.11"
+# P302(納品物作成)で実態に合わせて宣言した。`import` している外部パッケージは
+# starlette(main.py / handlers)と pydantic(schemas.py)であり、実行には uvicorn を使う。
+# バージョンは全テスト合格を確認した検証環境の実インストール版に合わせている。
+# 配布・コンテナビルド時のピン留めは `server/requirements.txt`(`docs/P302-deliver.md` 5章)。
+dependencies = [
+    "starlette>=1.0.0,<2",
+    "pydantic>=2.13.3,<3",
+    "uvicorn>=0.46.0,<1",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"

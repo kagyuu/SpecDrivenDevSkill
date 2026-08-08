@@ -1,0 +1,46 @@
+# TLS終端リバースプロキシの設定例(P302。ADR-010 / P003 8章からの委譲項目)
+#
+# 設計上の必須条件:
+#   フロントエンドは `fetch('/api/...')` のルート相対パスで API を呼び、Cookie は
+#   `credentials: 'same-origin'` で送る(`client/src/lib/api.js`)。したがって
+#   **画面(`/`, `/src/*`)とAPI(`/api/*`)は必ず同一オリジンでなければならない。**
+#   ここでは upstream を分けず、すべてのパスを app へそのまま渡すことでこれを保証する。
+#
+# 証明書の配置: `deploy/certs/server.crt` / `deploy/certs/server.key`
+#   (取得・更新手順は `docs/P302-deliver.md` 10章の人間確認事項)
+#
+# 注意: 本ファイルは **未検証の例** である(本プロジェクトの検証環境ではDockerデーモンが
+#   利用できず、ビルド・起動確認を行えていない。`docs/P302-deliver.md` 9章)。
+
+upstream meeting_room_app {
+    server app:8000;
+}
+
+# HTTP でのアクセスは HTTPS へ恒久リダイレクトする(REQ-NFR-003「通信は全てHTTPS」)
+server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certs/server.crt;
+    ssl_certificate_key /etc/nginx/certs/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # 画面・静的ファイル・API をすべて同一オリジンで同じ upstream に渡す(パスで分岐させない)
+    location / {
+        proxy_pass         http://meeting_room_app;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        # アプリは X-Forwarded-Proto を参照しない(ADR-010)。監査用に渡すだけ
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+}

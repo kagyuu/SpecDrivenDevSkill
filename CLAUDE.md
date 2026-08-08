@@ -2,66 +2,144 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Handoff note (2026-08-05).** V0.1–V0.7 were developed in Claude Cowork sessions running in a cloud sandbox, reaching this folder through a device bridge. That has now been handed off to Claude Code running locally. Read "Current state — start here" below before doing anything, because there is uncommitted work and a pending human decision.
+
+## Current state — start here
+
+**V0.7 is the latest version and is complete, but not committed.** ~300 files (`V0.7/`, `V0.7_testbed/`, `README.md`) are staged in git awaiting a commit. The Cowork session could not complete `git commit` because the device bridge has a 45-second per-command limit and this repo is now ~1,500 tracked files. Running locally you have no such limit:
+
+```
+git commit -m "V0.7"
+git push
+```
+
+Verify with `git log --oneline -3` first — the expected HEAD before this commit is `4993860 V0.7向け: CR運用の変更仕様を追加`.
+
+**Pending human decision: whether to create V0.8, and what goes in it.** `V0.7_testbed/e2e-validation-report.md` documents **44 findings** (5 high, 22 medium, 17 low). Do **not** start V0.8 on your own initiative — the standing rule in this project is that the human decides each version's direction after reading the validation report. Two of the high findings are concrete data-loss defects (P902 backup overwrite on resume; `.inprogress` unable to represent "inside P903", causing a resume to ignore the CR). Summarize and ask; don't fix speculatively.
+
+**Repo hygiene left over from the cloud sessions.** `_to_delete/` holds discarded files (old zips, cleared git lock files) — the bridge could not delete files, only move them, so cleanup was deferred. `.git/objects/` has ~390 stale `tmp_obj_*` files for the same reason. Locally you can just remove `_to_delete/` and run `git gc`. Also note some `V0.1/`/`V0.3/` files show as modified-unstaged from before these sessions (likely line-ending normalization); leave them unless asked.
+
 ## What this repository is
 
-This is not an application codebase. It is the source of a Claude Code **Skill** (`spec-driven-dev`) that makes Claude Code follow the phases of a traditional Japanese waterfall/V-model software development process instead of jumping straight from a vague request to code. The Skill itself never writes source code or runs tests — it only produces Markdown deliverables (specs, plans, and per-task execution instructions). Those instruction Markdown files are later handed to *separate* Claude Code sessions (acting as implementation/test/fix agents) that do the actual coding and testing.
+This is not an application codebase. It is the source of a Claude Code **Skill** (`spec-driven-dev`) that makes Claude Code follow the phases of a traditional Japanese waterfall/V-model development process instead of jumping from a vague request straight to code.
 
-There is no build, lint, or test tooling in this repo — it is pure Markdown. "Development" here means editing the Skill's instruction files themselves.
+"Development" here means editing the Skill's own instruction Markdown. There is no build or lint tooling for the Skill itself. **However, the `Vx.y_testbed/` folders are different** — from `V0.4_testbed/` onward they contain a real, working meeting-room reservation application (Python backend, JS frontend, hundreds of real tests) that was built *by* the Skill in order to validate it. Those have real test commands; see "Testbeds" below.
 
 ## Repository layout: versioned snapshots, not a normal source tree
 
-This repo doubles as the version history of the Skill, so each top-level folder (`V0.1/`, `V0.2/`, future `V0.x/`) is a **complete, self-contained snapshot** of the Skill at that point in time — not an incremental diff or a shared module structure.
+Each top-level `Vx.y/` folder is a **complete, self-contained snapshot** of the Skill at that point — not an incremental diff or a shared module structure.
 
-- Always work in the **highest-numbered `Vx.y/` folder** unless explicitly told to look at an older version for history/comparison.
-- When asked to improve or fix the Skill, create a **new `Vx.y/` folder** by copying the latest version's files rather than editing an old version in place, unless the user explicitly says to patch the current latest version directly.
-- Each version folder is what actually gets deployed: its contents (`SKILL.md`, `SKILL-01..09-*.md`, `TEMPLATE-*.md`) are copied as-is into a target project's `.claude/skills/spec-driven-dev/` to be used.
-- If a version folder introduces user-visible changes, add/update a `review-report.md` in that folder describing what changed and why (see `V0.2/review-report.md` for the expected depth: consistency issues, executability issues, and phrasing/structure consistency issues, each with a rationale and resolution).
+- Always work in the **highest-numbered `Vx.y/` folder** (currently `V0.7/`) unless told to look at an older one for comparison.
+- To improve the Skill, create a **new `Vx.y/` folder** by copying the latest, rather than editing an existing version in place — unless the human explicitly says to patch the current latest directly (which they have done, e.g. for typo/表記ゆれ fixes).
+- A version folder's contents are copied as-is into a target project's `.claude/skills/spec-driven-dev/` to be used.
+- Every version that changes behavior gets a `review-report.md` in its folder. Match the established depth — see `V0.6/review-report.md` and `V0.7/review-report.md`: each change gets 事象 (what was wrong) / V0.x での変更 (what was changed) / rationale, plus explicit sections for what was deliberately *not* changed.
+- `V0.7/USER_GUIDE.md` is the human-facing manual (requirement definition → initial build → change requests). Keep it in sync when CR handling or the build flow changes. Filename stays `USER_GUIDE.md`.
+- `CR運用変更仕様.md` (repo root) is the agreed design spec that V0.7's CR restructure implements. Historical reference.
 
-## The 9-phase structure (the thing to keep internally consistent)
+## Phase structure (P-number scheme, V0.4 onward)
 
-`SKILL.md` in each version folder is the entry point and defines 9 phases, each producing one primary Markdown deliverable under the target project's `docs/`:
+`SKILL.md` in each version folder is the entry point. **From V0.4 the numbering changed** from sequential phases 1–9 (`docs/01-requirement.md` …) to 3-digit P-numbers grouped into 7 Steps. V0.1–V0.3 use the old scheme; do not mix them up.
 
-| Phase | Name | Output |
+| Step | Phases | Purpose |
 |---|---|---|
-| 1 | System requirements | `docs/01-requirement.md` |
-| 2 | Frontend/UI spec | `docs/02-frontend-spec.md` |
-| 3 | Backend/detailed spec | `docs/03-backend-spec.md` |
-| 4 | Implementation plan | `docs/04-impl-plan.md` |
-| 5 | Test plan | `docs/05-test-plan.md` |
-| 6 | Implementation directions | `docs/06-impl-direction.md` + `docs/06-impl-direction/U000-*.md` |
-| 7 | Integration test directions | `docs/07-test-direction.md` + `docs/07-test-direction/T000-*.md` |
-| 8 | Fix plan | `docs/08-fix-plan.md` + `docs/08-fix-plan/F000-*.md` (+ `fixed/`, `08-fix-resolved.md`, `08-fix-unresolved.md`) |
-| 9 | Delivery summary | `docs/09-deliver.md` |
+| Require Development | P001 | Requirement definition — the only human-collaborative phase |
+| Plan Loop | P002–P012 | UI spec, detail spec, traceability, impl plan, test plan, impl/test/acceptance directions, cross-document review loop |
+| Overview | P020–P022 | Source-tree INDEX, ADR, ArchitectureHandbook |
+| Executor | P101–P104 | Impl context, implementation, integration test, INDEX update (iterates per sprint) |
+| Reviewer Loop | P201–P205 | Acceptance test, fix plan, fix execution, impact analysis, retest |
+| Closing | P301–P302 | Root INDEX, deliverables + release verdict |
+| Refactor | P901–P905 | Apply a human change request (CR) |
 
-Each phase's driver file is `SKILL-0N-*.md`; `SKILL.md`'s per-phase sections just say "execute `SKILL-0N-*.md`". Phases 6–8 also reference a `TEMPLATE-0N-*.md` that defines the required structure of each per-task file (`U000-*`, `T000-*`, `F000-*`).
+Note **P021 is ADR and P022 is ArchitectureHandbook** — these were swapped in V0.5 because the Handbook consumes `docs/ADR.md` as input. Don't restore the older order.
 
-Critical invariant when editing any of these files: **inputs, outputs, file names, and folder names must match exactly across `SKILL.md`, the individual `SKILL-0N-*.md` files, and the `TEMPLATE-0N-*.md` files.** Most historical bugs in this Skill (see `V0.2/review-report.md`) were exactly this kind of cross-file drift — e.g. downstream phases referencing an input filename (`01-overview.md`) that phase 1 never actually produced, a sub-folder name not matching its parent document's name, or a template missing a field that its driver file requires. When changing a phase's output filename/location or a template's fields, grep the whole version folder for every other reference to it before considering the change done.
+### The V0.4 design change — do not reintroduce per-phase human review
 
-Only one phase runs per Claude Code invocation, and it stops for human review before the next phase begins — this rule (and the phase-detection logic in `SKILL.md`'s "ステップ0") is core to the Skill's design intent and should not be relaxed when editing.
+Earlier versions (and the previous edition of this file) stated that only one phase runs per invocation and then stops for human review. **V0.4 deliberately removed that.** After P001, the pipeline runs continuously to P302 with no human gate; execution stops only when a Step's own 停止条件 is met. Human input arrives afterwards, as a change request processed by the Refactor Step. This is the Skill's central design commitment — treat any instruction that tells the executor to "stop and wait for the next task" as a defect to remove (V0.5 fixed exactly that in three templates).
 
-## Structural conventions each `SKILL-0N-*.md` file follows
+## Critical invariant: cross-file consistency
 
-Every phase driver file uses the same frontmatter and section shape — preserve this when adding or editing a phase file:
+**Inputs, outputs, file names, folder names, and P-numbers must match exactly across `SKILL.md`, each `SKILL-P0NN-*.md`, and each `TEMPLATE-*.md`.** Most historical defects in this Skill were this kind of cross-file drift — a phase referencing an input its producer never creates, a table row contradicting the phase file it points at, a template missing a field its driver requires.
+
+When you change a phase's output filename, a folder name, or a template's fields, **grep the entire version folder for every other reference before considering the change done.** This is the repo's core quality property and every validation round has found violations of it.
+
+## Structural conventions for each `SKILL-P0NN-*.md`
 
 ```yaml
 ---
-name: {phase-name}-dev   # pattern: {フェーズ名}-dev, must be unique per file
+name: {phase-name}-dev   # unique per file
 description: 仕様駆動でアプリケーションを開発するときに、{このフェーズの成果物}を作成する。
 ---
 ```
 
-Body section order: `目的` → `インプット文書` → `アウトプット文書` (containing `### アウトプットの記載内容` then `### アウトプットを参照する文書`) → `## 動作`. Phases 1–5 are human-collaborative planning docs (short `## 動作`, often just "共通指示以外は特になし"); phases 6–9 are agent-facing execution instructions with a much longer `## 動作`/`アウトプットの記載内容`. This length asymmetry is intentional (see `review-report.md` §3-3), not something to "fix" by padding phases 1–5.
+Body order: `## 目的` → `## インプット文書` → `## アウトプット文書` (with `### アウトプットの記載内容` then `### アウトプットを参照する文書`) → `## 動作`.
 
-Common rules referenced by every phase (defined once in `SKILL.md`'s "各フェーズ共通指示" section — don't duplicate them into individual phase files, just reference them):
+Planning phases have a short `## 動作` (often 「共通指示以外は特になし」); agent-facing execution phases have a much longer one. **This asymmetry is intentional** — do not "fix" it by padding the short ones.
 
-- Diagrams inside generated Markdown must use Mermaid syntax.
-- Missing/sparse output sections → ask the human whether to generate a FIXME-marked template or co-author interactively.
-- The phase 6/7/8 table-of-contents files use a checkbox-based progress format (historically mislabeled "OKF format" — see below): `- [状態] 番号 [タイトル](相対リンク) — 一言概要`, where 状態 is one of `[ ]` / `[~]` / `[x]`. A phase isn't complete until every item in its table of contents is `[x]`.
+Common rules live once in `SKILL.md`'s 各フェーズ共通指示 — reference them from phase files, don't duplicate them.
 
-## Naming trap: "OKF format" does not mean Google's Open Knowledge Format
+## Two inline notations — keep them distinct
 
-`SKILL.md` and several phase files call the checkbox+link table-of-contents format "OKF形式". Per `V0.2/review-report.md`'s appendix, this was investigated and confirmed to be an unrelated, self-invented format (checkbox + number + link + summary) that only superficially resembles Google Cloud's actual Open Knowledge Format — adopting the real OKF standard was deliberately rejected because it lacks task-lifecycle/status semantics. The name is intentionally kept as-is in V0.2 (renaming was recommended for a future version but not yet done). Do not "correct" this format toward Google's OKF spec, and if renaming it in a new version, update every occurrence across `SKILL.md` and all `SKILL-04/05/06/07-*.md` files consistently.
+- **★FIXME★** — the Agent filled something in from its own assumption; **a human still needs to confirm it**. Unresolved.
+- **★ACCEPTED★** (new in V0.7) — a limitation that was **considered and consciously accepted**, with what was considered, why it was rejected, and the residual risk written adjacent to it. Resolved; **reviewers and later validation rounds should not raise it again.**
+
+Both go **inline, adjacent to the specific text they concern** — never batched at a document's end. ★ACCEPTED★ exists because the V0.6 validation round re-raised an already-settled decision: the decision lived only in `review-report.md`, which reviewers don't read — they read the SKILL files. So settled decisions belong in the SKILL files themselves.
+
+## Design questions permanently closed by human decision — do not re-propose
+
+These were each proposed, considered, and **rejected by the human**. They are marked ★ACCEPTED★ in the relevant SKILL files. Re-proposing them wastes a round:
+
+| Topic | Why rejected |
+|---|---|
+| Structurally guaranteeing P008 test IDs match P102 implementation naming | 自動検証は複雑化し破綻しやすい |
+| A formal granularity rule for fix files when one root cause breaks many tests | 形式化はAIが苦手で誤判定が増える |
+| Automating CR scope classification (an impact-analysis engine) | 影響分析エンジンは破綻リスクが高い |
+| Proving *sufficiency* of the migration-idempotency check (2 consecutive runs) | 十分性の証明はコストに見合わない — necessary-but-not-sufficient is accepted deliberately |
+
+The underlying principle, settled in V0.6: **leave judgment to the AI, but require it to record the judgment and its reasoning so a human can verify afterwards** — rather than replacing judgment with mechanical rules.
+
+## Naming trap: "OKF形式" is not Google's Open Knowledge Format
+
+`SKILL.md` and several phase files call the checkbox+link table-of-contents format 「OKF形式」. This was investigated (`V0.2/review-report.md` appendix) and confirmed to be a self-invented format (`- [状態] 番号 [タイトル](相対リンク) — 一言概要`, 状態 ∈ `[ ]`/`[~]`/`[x]`) that only superficially resembles Google Cloud's OKF. Adopting the real standard was deliberately rejected — it lacks task-lifecycle semantics. Do not "correct" it toward Google's spec. If renaming it, update every occurrence consistently.
+
+Related: `docs/CR.md` deliberately uses a **table, not OKF format**, because CR state has 5 values that 3-state checkboxes cannot express. This is documented in `TEMPLATE-CR.md` itself so the question doesn't get re-raised.
+
+## CR handling (restructured in V0.7)
+
+Three files with separated responsibilities. Before V0.7, `docs/CR.md` held both state and CR bodies, and that role collision generated defects in both V0.5 and V0.6; separating them removed the defect class structurally.
+
+| File | Role | Written by |
+|---|---|---|
+| `docs/CR.md` | Status ledger only — table, no bodies, completed rows never deleted, single source of truth for state and priority | P901 / P903 / P904 |
+| `docs/P901-cr-direction/CR-NNN.md` | The request. Human may edit it until state reaches 対応中 | P901 |
+| `docs/P903-cr-records/CR-NNN.md` | Handling record. **Created by P903 before implementing** (the scope decision is a before-the-work judgment), then appended by P903 on completion, P904, P905 | P903/P904/P905 |
+
+CR numbers are 3 digits, matching `U001`/`T001`/`A001`/`F001`/`ADR-001`. There is intentionally **no** `docs/P901-cr-direction.md` index file — `docs/CR.md` plays that role.
+
+## Testbeds
+
+Each `Vx.y_testbed/` validates that version by actually running it. `testbed.md` holds the 確認観点 and verdicts; `e2e-validation-report.md` holds the detailed findings that drive the next version. Read the latest one before revising the Skill — it is the working checklist.
+
+`V0.7_testbed/` is the most useful reference: unlike the two before it (which were differential — copy the previous testbed, swap the Skill), it was **rebuilt from `docs/P001-requirement.md`** through the whole pipeline plus one full CR. 486 tests, all passing. Because it exercised phases the differential rounds never re-ran, it found far more (44) — that reflects the method change, not a regression in V0.7.
+
+**Important about the technology stack.** The testbed apps use Starlette + Pydantic v2 + stdlib sqlite3, hashlib.scrypt, `unittest`, plain HTML/ES-module JS, and `node --test`. `docs/P001-requirement.md` asks for React+TS+Vite and FastAPI. **This divergence is intentional and is not a Skill defect** — the cloud sandbox had no access to pypi.org or registry.npmjs.org, so substitutes were chosen and recorded in ADR-001–003 and `docs/P101-impl-context.md`. Do not "fix" the existing testbeds toward the requirement document. Running locally you likely *do* have network access, so a future testbed could use the real stack — but that would be a new testbed, and the substitution rationale in the existing ones must stay.
+
+Test commands for `V0.7_testbed/`:
+
+```
+cd server && python3 -m unittest discover -s tests -t .        # 262 tests
+cd client && node --test 'tests/*.js'                          # 146
+cd client && node --test 'tests/integration/*.js'              # 46
+cd client && node --test 'tests/acceptance/test_*.js'          # 32
+```
+
+The quoted globs matter: `node --test tests/` fails with a module-resolution error, and Node's default pattern does not match these `test_*.js` filenames — it would silently run zero tests.
 
 ## When revising a version
 
-Read `V0.2/review-report.md` first — it documents the exact categories of defects already found and fixed once (cross-file consistency, executability, phrasing/structure consistency) plus known open issues (e.g. sub-folder progress tracking is unverified end-to-end; the full 9-phase pipeline has not been run against a real target project). Treat it as the checklist for reviewing any new version, and append to it (or add an equivalent report in the new version folder) rather than silently fixing things with no record.
+1. Read the latest `Vx.y_testbed/e2e-validation-report.md` — it is the defect checklist.
+2. Confirm with the human which findings are in scope. Some are deliberately deferred or closed (see above).
+3. Copy the latest `Vx.y/` to a new folder; edit there.
+4. Grep the new folder for cross-file consistency after every structural change.
+5. Write `review-report.md` in the new folder, matching the established structure.
+6. Build a new `Vx.y_testbed/` and actually run the Skill against it — every version so far has had defects that only appeared when executed, not when reviewed.
+7. Update `README.md` (repo root) and `USER_GUIDE.md` if user-visible behavior changed.

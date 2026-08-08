@@ -1,0 +1,70 @@
+# 会議室予約システム — 配布・起動定義(P302)
+#
+# 構成の根拠(ADR-010 / `docs/P302-deliver.md` 3章):
+#   * `app` は 1コンテナ・1プロセスで **APIと静的ファイルの双方を同一オリジンで** 配信する。
+#     フロントエンドは `fetch('/api/...')` のルート相対パスと `credentials: 'same-origin'` を
+#     前提にしているため、client と server を別サービス・別オリジンに分けると認証もAPI呼び出しも
+#     成立しない。**サービスを2つに割らないこと。**
+#   * データストアはSQLite単一ファイルであり、別プロセスのDBミドルウェアは存在しない(ADR-004)。
+#     したがって db サービスは意図的に持たない。
+#   * TLS終端はアプリの外側の責務(ADR-010)。`tls` プロファイルの `proxy` で行う。
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: meeting-room:1.1.0
+    container_name: meeting-room-app
+    # `.env` が無い場合は下の environment の既定値だけで起動する
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # SQLiteファイルの置き場。ボリュームのマウント先と一致させる
+      DB_PATH: ${DB_PATH:-/app/data/app.db}
+      # 無操作タイムアウト(既定8時間)/ 絶対有効期限(既定24時間)。ADR-005
+      SESSION_IDLE_SECONDS: ${SESSION_IDLE_SECONDS:-28800}
+      SESSION_ABSOLUTE_SECONDS: ${SESSION_ABSOLUTE_SECONDS:-86400}
+      # 初期管理者。**本番では必ず .env で上書きする**(P003 3.6)
+      INITIAL_ADMIN_ID: ${INITIAL_ADMIN_ID:-admin001}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?INITIAL_ADMIN_PASSWORD を .env に設定してください}
+    ports:
+      # TLS終端プロキシ(`tls` プロファイル)を使う場合は、この公開をやめて
+      # proxy 経由のみに絞る(`docs/P302-deliver.md` 7章)
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      # SQLiteファイルの永続化。ここを失うと全データを失う(ADR-004)
+      - app-data:/app/data
+    # 可用性(REQ-NFR-002)のための自動再起動。
+    # 起動処理(マイグレーション + 初期管理者シード)が冪等であることはP302 9章で実測確認済み
+    restart: unless-stopped
+    # ログは標準出力へJSON1行(ADR-010)。集約先は実行環境側で設定する
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # TLS終端リバースプロキシ(任意)。`docker compose --profile tls up -d` で起動する。
+  # ADR-010 / P003 8章が P302 に委譲した「リバースプロキシ構成・証明書の配置・
+  # HTTPからHTTPSへのリダイレクト」に対応する。**同一オリジンを崩さないため、
+  # `/` と `/api/*` を分けず、すべてを app に渡す。**
+  proxy:
+    profiles: ["tls"]
+    image: nginx:1.27-alpine
+    container_name: meeting-room-proxy
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf.example:/etc/nginx/conf.d/default.conf:ro
+      # 証明書と秘密鍵を配置する(取得・更新手順は `docs/P302-deliver.md` 10章の人間確認事項)
+      - ./deploy/certs:/etc/nginx/certs:ro
+    restart: unless-stopped
+
+volumes:
+  app-data:

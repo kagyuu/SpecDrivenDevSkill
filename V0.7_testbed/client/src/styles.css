@@ -1,0 +1,36 @@
+/* 全画面共通のスタイル(P002 2.2)。外部CSSフレームワークは使わない(ADR-001)。 */
+body { font-family: system-ui, sans-serif; margin: 0; color: #222; }
+#header { background: #1f3f6e; color: #fff; padding: 8px 16px; }
+#header a { color: #fff; margin-right: 12px; }
+#app { padding: 16px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; margin-bottom: 4px; }
+.field-error { color: #c00; font-size: 0.9em; margin-top: 4px; }
+.top-message { padding: 8px; margin-bottom: 12px; border: 1px solid #ccc; }
+.top-message.is-error { color: #c00; border-color: #c00; }
+.is-inactive { color: #888; background: #f2f2f2; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #ccc; padding: 4px 8px; }
+.modal { border: 1px solid #666; padding: 16px; margin-top: 16px; }
+
+/* S02 予約カレンダー(P002 3.2)。会議室=列 / 時間帯=行のグリッド。U004-T1 */
+.calendar-controls { margin-bottom: 8px; }
+.calendar-controls button { margin-right: 8px; }
+[data-role="room-filters"] { margin-bottom: 12px; }
+.room-filter { margin-right: 12px; }
+[data-role="day-grid"] { margin-bottom: 24px; }
+table.calendar { width: 100%; table-layout: fixed; }
+table.calendar th.slot { width: 72px; font-weight: normal; background: #f7f7f7; }
+td.cell { cursor: pointer; height: 22px; font-size: 0.85em; }
+td.cell.is-reserved { background: #dde7f5; }
+/* 自分の予約は別配色(P002 3.2) */
+td.cell.is-mine { background: #f5e6c8; }
+
+/* S03・S04 の予約フォーム(P002 3.3 / 3.4)。U004-T2 / U004-T3 */
+.form-error { color: #c00; margin-bottom: 8px; }
+.detail-row { margin-bottom: 6px; }
+.detail-label { display: inline-block; width: 8em; color: #555; }
+
+/* S05 マイ予約一覧(P002 3.5)。U004-T4 */
+.period-filter { margin-right: 12px; }
+[data-role="reservation-rows"] tr { cursor: pointer; }
