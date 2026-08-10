@@ -1,0 +1,48 @@
+# P302 (docs/P302-deliver.md 6章): docker-compose distribution for the
+# "サービス提供型システム" (frontend + backend, no separate DB service -
+# the backend embeds SQLite via server/app/db/connection.py). See
+# docs/P302-deliver.md 7章 for the full startup procedure.
+#
+# NOT build/startup-verified in this sandbox - Docker itself is unavailable
+# here (docs/P302-deliver.md 9章/10章/11章 record this explicitly).
+
+services:
+  server:
+    build:
+      context: ./server
+    environment:
+      DATABASE_PATH: /app/data/app.db
+      # Must stay "false" unless a TLS terminator is placed in front of the
+      # "client" service. If COOKIE_SECURE=true, server/app/routers/auth.py
+      # sets the session cookie with the Secure attribute, which browsers
+      # will not send back over plain HTTP - and this compose file serves
+      # the client over plain HTTP (no TLS termination). See
+      # docs/P302-deliver.md 10章.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      # Named volume so reservation/user data survives `docker compose
+      # down` + `up` (only removed by an explicit `down -v`). Backs the
+      # restart-idempotency property verified by
+      # server/tests/acceptance/test_restart_resilience.py and re-run for
+      # this phase (docs/P302-deliver.md 9章 item 8).
+      - server-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+    ports:
+      - "${CLIENT_PORT:-8080}:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  server-data:
