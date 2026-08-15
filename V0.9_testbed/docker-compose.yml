@@ -1,0 +1,42 @@
+# docker-compose.yml — 会議室予約システム
+#
+# 構成: web(nginx、静的配信+/apiリバースプロキシ) -> server(FastAPI) -> sqlite(永続ボリューム)
+# docs/P302-deliver.md 実行前チェック項目7にもとづき、フロントエンドとバックエンドを
+# 同一オリジン(webコンテナ)に統合する構成にしている(client/nginx.conf参照)。
+#
+# 既知の制約(docs/P302-deliver.md §10参照): 本構成はTLS終端を含まない。ADR-005によりログイン
+# セッションCookieはSecure属性付きのため、TLSが無い状態(素のhttp://localhost:8080)では
+# ブラウザがCookieを保存せず、ログイン後のAPI呼び出しが401になる。本番相当の配備では、
+# この docker-compose の手前にTLS終端を行うロードバランサ/リバースプロキシを置く前提
+# (docs/P003-backend-spec.md §7)。ローカルでの動作確認のみを行う場合は、別途セルフ署名証明書を
+# nginxに追加するか、一時的にSecure属性を外したビルドで確認する必要がある(仕様変更を伴うため
+# 本フェーズでは行わない)。
+
+services:
+  server:
+    build:
+      context: ./server
+    environment:
+      DATABASE_PATH: /app/data/app.db
+    volumes:
+      - db-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./client
+    ports:
+      - "8080:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:
