@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state — start here
 
-**V0.9 is the latest version and is committed** (`git log` HEAD is `8a3ce80 V0.9`, working tree clean). V0.1–V0.7 were developed in Claude Cowork sessions running in a cloud sandbox; that workflow has since been fully handed off to Claude Code running locally, and V0.8/V0.9 were both developed and committed locally without incident.
+**V1.0 is the latest version. It is complete but NOT yet committed** — `V1.0/`, `V1.0_testbed/`, and edits to `CLAUDE.md`/`README.md` are uncommitted at the time of writing (expected HEAD before that commit: `8a3ce80 V0.9`). V0.1–V0.7 were developed in Claude Cowork sessions running in a cloud sandbox; that workflow has since been fully handed off to Claude Code running locally, and V0.8 onward were developed locally without incident.
 
-**Pending human decision: whether to create V0.10 (or V1.0), and what goes in it.** `V0.9_testbed/e2e-validation-report.md` §3 documents **5 newly found issues, all low severity**: (1) P007's "コード格納先を初期化する" reads as if P007 itself performs it, when Executor (P102) actually does; (2) the word "完了" means different things in the Executor's per-task OKF sense vs. the Plan Loop Step's exit-condition sense, and only each phase's own text disambiguates it; (3) no phase assigns ownership of E2E harness topology decisions (proxying, cross-origin cookies) in a split client/server setup; (4) `docs/CR.md`'s priority column has no value for "rejected, not applicable"; (5) `SKILL-P302-deliver.md`'s version-bump policy only covers CR-driven increments, not the initial 0.x.x→1.0.0 baseline. As before, do **not** start the next version on your own initiative — the standing rule in this project is that the human decides each version's direction after reading the validation report. Summarize and ask; don't fix speculatively.
+**Pending human decision: whether to create the next version, and what goes in it.** `V1.0_testbed/e2e-validation-report.md` §3 documents **one new medium-severity finding that was deliberately left unfixed**: the generated test suite is not re-runnable. Running the Playwright integration suite against a freshly deleted test DB passes 9/9; running it a second time against the same DB fails 2 tests, because each run accumulates reservation rows in a fixed-path SQLite file and no test cleans up after itself. This matters because **P205 (結合テスト再実施) re-runs exactly these tests** during the normal Reviewer Loop, so it can produce failures unrelated to the fix under test — potentially sending P202 off to "fix" a nonexistent bug, or preventing the loop from converging within its 3-round limit. The Skill already has a well-established idempotency rule for *migrations* (decide the scheme in P003, cover it in P006, verify by running twice in P903, check again in P302 item 8) but has no equivalent for the *test suite itself*. Deciding where such a rule belongs and how strict it should be is a design judgment, so it was reported rather than fixed. As always, do **not** start the next version on your own initiative — the standing rule is that the human decides each version's direction after reading the validation report. Summarize and ask; don't fix speculatively.
 
 **Repo hygiene left over from the cloud sessions (still not cleaned up).** `_to_delete/` holds discarded files from the device-bridge era (stale `HEAD.lock*`/`index.lock*` variants, `_incoming_v06`/`_incoming_v07` diff staging dirs) — the bridge could not delete files, only move them, so cleanup was deferred. `.git/objects/` has 400+ stale `tmp_obj_*` files for the same reason. Locally you can just remove `_to_delete/` and run `git gc`. Also note some `V0.1/`/`V0.3/` files may still show as modified-unstaged from before these sessions (likely line-ending normalization); leave them unless asked.
 
@@ -20,11 +20,11 @@ This is not an application codebase. It is the source of a Claude Code **Skill**
 
 Each top-level `Vx.y/` folder is a **complete, self-contained snapshot** of the Skill at that point — not an incremental diff or a shared module structure.
 
-- Always work in the **highest-numbered `Vx.y/` folder** (currently `V0.9/`) unless told to look at an older one for comparison.
+- Always work in the **highest-numbered `Vx.y/` folder** (currently `V1.0/`) unless told to look at an older one for comparison.
 - To improve the Skill, create a **new `Vx.y/` folder** by copying the latest, rather than editing an existing version in place — unless the human explicitly says to patch the current latest directly (which they have done, e.g. for typo/表記ゆれ fixes).
 - A version folder's contents are copied as-is into a target project's `.claude/skills/spec-driven-dev/` to be used.
-- Every version that changes behavior gets a `review-report.md` in its folder. Match the established depth — see `V0.7/review-report.md`, `V0.8/review-report.md`, `V0.9/review-report.md`: each change gets 事象 (what was wrong) / Vx.y での変更 (what was changed) / rationale, plus explicit sections for what was deliberately *not* changed.
-- `V0.9/USER_GUIDE.md` is the human-facing manual (requirement definition → initial build → change requests). Keep it in sync when CR handling or the build flow changes. Filename stays `USER_GUIDE.md`; when copying to a new version folder, also update its title line and internal `Vx.y/SKILL.md` path reference (V0.9's copy was found with a stale "(V0.8)" label left over from the copy — check for this each time).
+- Every version that changes behavior gets a `review-report.md` in its folder. Match the established depth — see `V0.8/review-report.md`, `V0.9/review-report.md`, `V1.0/review-report.md`: each change gets 事象 (what was wrong) / Vx.y での変更 (what was changed) / rationale, plus explicit sections for what was deliberately *not* changed.
+- `V1.0/USER_GUIDE.md` is the human-facing manual (requirement definition → initial build → change requests). Keep it in sync when CR handling or the build flow changes. Filename stays `USER_GUIDE.md`; when copying to a new version folder, also update its title line and internal `Vx.y/SKILL.md` path reference (V0.9's copy was found with a stale "(V0.8)" label left over from the copy — check for this each time; V1.0's copy also carries install instructions that name the version folder, so grep the whole file for the old version string, not just the title).
 
 ## Phase structure (P-number scheme, V0.4 onward)
 
@@ -42,13 +42,13 @@ Each top-level `Vx.y/` folder is a **complete, self-contained snapshot** of the 
 
 Note **P021 is ADR and P022 is ArchitectureHandbook** — these were swapped in V0.5 because the Handbook consumes `docs/ADR.md` as input. Don't restore the older order.
 
-The P-number scheme itself has been stable since V0.4; V0.6–V0.9 all changed phase *content* without renumbering or regrouping phases.
+The P-number scheme itself has been stable since V0.4; V0.6–V1.0 all changed phase *content* without renumbering or regrouping phases.
 
 ### The V0.4 design change — do not reintroduce per-phase human review
 
 Earlier versions (and the previous edition of this file) stated that only one phase runs per invocation and then stops for human review. **V0.4 deliberately removed that.** After P001, the pipeline runs continuously to P302 with no human gate; execution stops only when a Step's own 停止条件 is met. Human input arrives afterwards, as a change request processed by the Refactor Step. This is the Skill's central design commitment — treat any instruction that tells the executor to "stop and wait for the next task" as a defect to remove (V0.5 fixed exactly that in three templates).
 
-## Structural additions from V0.8 (kept in V0.9)
+## Structural additions from V0.8 (kept through V1.0)
 
 V0.8 introduced several structural mechanisms — beyond ordinary content edits — that are now load-bearing parts of the Skill's design. A future revision touching these areas should preserve them, not rediscover the problems they solve:
 
@@ -57,7 +57,13 @@ V0.8 introduced several structural mechanisms — beyond ordinary content edits 
 - **P902 is idempotent.** Before backing up `docs/P001-requirement.md`, P902 checks whether the backup file already exists and whether the body already carries the target CR's change annotation, so a re-run after an interrupted session doesn't overwrite the original backup or double-apply the edit.
 - **"テスト指示側の誤り" as a first-class P202 result category**, distinct from an actual code defect — requires citing the contradicting upstream spec and confirming no test coverage is lost. Exercised end-to-end (not just designed) for the first time in `V0.9_testbed` via an intentionally seeded bad expectation in A004.
 - **`DEVIATED` status** added to P004's and P302's status vocabularies, for an environment constraint that a re-do would not resolve (paired with a mandatory ★ACCEPTED★-style rationale, non-blocking for release verdicts).
-- **Semantic-versioning policy in P302** for CR-driven version bumps (bugfix=PATCH, backward-compatible feature=MINOR, breaking change=MAJOR; API-contract or data-model CRs are MINOR at minimum). Confirmed live in `V0.9_testbed`: CR-001 bumped `VERSION` 1.0.0 → 1.1.0.
+- **Semantic-versioning policy in P302** for CR-driven version bumps (bugfix=PATCH, backward-compatible feature=MINOR, breaking change=MAJOR; API-contract or data-model CRs are MINOR at minimum). Confirmed live in `V0.9_testbed`: CR-001 bumped `VERSION` 1.0.0 → 1.1.0. **V1.0 amended this**: a new project starts at `0.1.0`, and while MAJOR is `0` a breaking change bumps MINOR rather than MAJOR — reaching `1.0.0` requires an explicit human instruction and carries no "official release" meaning. The rule above therefore applies once MAJOR ≥ 1.
+
+## Structural additions in V1.0
+
+- **Initialization of the code root belongs to P102, not P007.** P007 writes the init step into the first task of the first sprint; the Executor performs it. The subtlety that makes this load-bearing: P020 runs *between* them and creates the source-tree directory with an `INDEX.md` inside, so by the time P102 runs, **the directory is not empty**. `SKILL-P102-implement.md` therefore forbids running scaffold tools interactively, allows producing "the equivalent structure" instead, and forbids deleting `INDEX.md`. This was verified empirically: `npm create vite@latest .` in a directory holding only `INDEX.md` prints "Operation cancelled", creates **zero files, and still exits 0** — so an executor checking only the exit code would believe it succeeded.
+- **Cross-origin / dev-harness topology is decided by P003 and recorded in ADR.** P103, P201, and P009 all explicitly defer to that ADR entry rather than deciding for themselves. The Skill deliberately does **not** prescribe which solution to use (dev proxy vs. token auth vs. `SameSite=None`) — only who decides and where it gets written down. Note `Access-Control-Allow-Origin: *` cannot be combined with `Access-Control-Allow-Credentials: true`, so loosening CORS headers does not fix cookie auth; don't "simplify" the rule in that direction.
+- **Stop-condition reports must carry a proposed fix**, and must be written to `docs/.stop-report.md` (a control file like `.inprogress`, excluded from Step 0's progress detection) rather than existing only in chat. Two guards matter here: the rule requires *proposing*, never *performing* — it must not override P302's no-spec-change rule, P103's no-fixing rule, or P205's no-tampering rule; and it must not inject stop reports into deliverables whose structure a TEMPLATE defines. When no proposal is possible, the agent says so in a fixed sentence naming the reason.
 
 ## Critical invariant: cross-file consistency
 
@@ -98,7 +104,7 @@ These were each proposed, considered, and **rejected by the human**. They are ma
 | Automating CR scope classification (an impact-analysis engine) | 影響分析エンジンは破綻リスクが高い |
 | Proving *sufficiency* of the migration-idempotency check (2 consecutive runs) | 十分性の証明はコストに見合わない — necessary-but-not-sufficient is accepted deliberately |
 
-The underlying principle, settled in V0.6: **leave judgment to the AI, but require it to record the judgment and its reasoning so a human can verify afterwards** — rather than replacing judgment with mechanical rules. V0.8 and V0.9 reinforced this principle in new areas (e.g. the "テスト指示側の誤り" category, DEVIATED status) but did not add to or revisit this specific closed list.
+The underlying principle, settled in V0.6: **leave judgment to the AI, but require it to record the judgment and its reasoning so a human can verify afterwards** — rather than replacing judgment with mechanical rules. V0.8 through V1.0 reinforced this principle in new areas (e.g. the "テスト指示側の誤り" category, DEVIATED status, and V1.0's rule that P003 must *record* its cross-origin decision without the Skill dictating which option to pick) but did not add to or revisit this specific closed list.
 
 ## Naming trap: "OKF形式" is not Google's Open Knowledge Format
 
@@ -110,7 +116,7 @@ Related: `docs/CR.md` deliberately uses a **table, not OKF format**, because CR 
 
 ## CR handling (restructured in V0.7)
 
-Three files with separated responsibilities. Before V0.7, `docs/CR.md` held both state and CR bodies, and that role collision generated defects in both V0.5 and V0.6; separating them removed the defect class structurally. `CR運用変更仕様.md`, the design spec this restructure implemented, has been deleted from the repo root now that V0.7–V0.9 have all confirmed the structure in production and this file's content is fully superseded by this section plus each version's `review-report.md`.
+Three files with separated responsibilities. Before V0.7, `docs/CR.md` held both state and CR bodies, and that role collision generated defects in both V0.5 and V0.6; separating them removed the defect class structurally. `CR運用変更仕様.md`, the design spec this restructure implemented, has been deleted from the repo root now that V0.7–V1.0 have all confirmed the structure in production and this file's content is fully superseded by this section plus each version's `review-report.md`.
 
 | File | Role | Written by |
 |---|---|---|
@@ -118,17 +124,19 @@ Three files with separated responsibilities. Before V0.7, `docs/CR.md` held both
 | `docs/P901-cr-direction/CR-NNN.md` | The request. Human may edit it until state reaches 対応中 | P901 |
 | `docs/P903-cr-records/CR-NNN.md` | Handling record. **Created by P903 before implementing** (the scope decision is a before-the-work judgment), then appended by P903 on completion, P904, P905 | P903/P904/P905 |
 
-CR numbers are 3 digits, matching `U001`/`T001`/`A001`/`F001`/`ADR-001`. There is intentionally **no** `docs/P901-cr-direction.md` index file — `docs/CR.md` plays that role. A rejected CR is the one documented exception to "P903 creates the record file": if P901 decides on rejection at intake, P901 itself creates the record file, since a rejected CR never reaches P903 (V0.9 made this exception explicit in `SKILL-P901-cr-create.md` rather than leaving it as an implicit gap).
+CR numbers are 3 digits, matching `U001`/`T001`/`A001`/`F001`/`ADR-001`. There is intentionally **no** `docs/P901-cr-direction.md` index file — `docs/CR.md` plays that role. A rejected CR is the one documented exception to "P903 creates the record file": if P901 decides on rejection at intake, P901 itself creates the record file, since a rejected CR never reaches P903 (V0.9 made this exception explicit in `SKILL-P901-cr-create.md` rather than leaving it as an implicit gap). Since V1.0 the priority column takes a fourth value, `N/A`, used only for rejected CRs — whichever phase sets the state to `却下` sets the priority to `N/A` at the same time.
 
 ## Testbeds
 
 Each `Vx.y_testbed/` validates that version by actually running it. `testbed.md` holds the 確認観点 and verdicts; `e2e-validation-report.md` holds the detailed findings that drive the next version. Read the latest one before revising the Skill — it is the working checklist.
 
-**`V0.9_testbed/` is currently the most useful reference.** Like `V0.7_testbed`, it was rebuilt from the same starting requirement document (`docs/P001-requirement.md` before CR-001) through the whole pipeline, so it's a full pipeline run rather than a differential one. It resolved effectively all of the V0.7_testbed backlog (high 5 + medium 28 across V0.8, low 20 + 2 new across V0.9) and, notably, intentionally seeded a wrong test-direction expectation in A004 to exercise the "テスト指示側の誤り" P202 category end-to-end for the first time — V0.8_testbed had the mechanism but never hit a real case to exercise it. It found only 5 new issues, all low severity (listed under "Current state" above).
+**`V0.9_testbed/` is the most useful *full-pipeline* reference.** Like `V0.7_testbed`, it was rebuilt from the same starting requirement document (`docs/P001-requirement.md` before CR-001) through the whole pipeline. It resolved effectively all of the V0.7_testbed backlog (high 5 + medium 28 across V0.8, low 20 + 2 new across V0.9) and intentionally seeded a wrong test-direction expectation in A004 to exercise the "テスト指示側の誤り" P202 category end-to-end for the first time.
+
+**`V1.0_testbed/` is a differential testbed**, not a rebuild: it copies `V0.9_testbed`'s artifacts, swaps in the V1.0 Skill, and re-runs only the phases the V1.0 rule changes touch. That was a deliberate choice — V1.0 adds no new phase and no new deliverable, so a full rebuild would have cost far more without showing more (same rationale as V0.5_testbed/V0.6_testbed). Its `e2e-validation-report.md` §4 lists exactly what a differential run could *not* cover, so read that before assuming something was verified. Note it also demonstrates a useful technique: rather than waiting for a stop condition to occur naturally, it **induced** one (hiding `docs/P003-backend-spec.md` and running P021) to exercise the new report-with-a-proposal rule.
 
 **Important about the technology stack.** `docs/P001-requirement.md` asks for React+TS+Vite and FastAPI. **`V0.7_testbed` is the outlier here, not the norm**: it substituted Starlette + Pydantic v2 + stdlib sqlite3, hashlib.scrypt, `unittest`, plain HTML/ES-module JS, and `node --test`, because the cloud sandbox it ran in had no access to pypi.org or registry.npmjs.org (recorded in ADR-001–003 and `docs/P101-impl-context.md` of that testbed). **`V0.8_testbed` and `V0.9_testbed`, built locally with normal network access, use the actually-requested stack**: React + TypeScript + Vite + Playwright on the client, Python + FastAPI + SQLite + `uv` + pytest on the server. Do not "fix" `V0.7_testbed` toward the requirement document — the substitution rationale recorded in it must stay as-is; it documents a real environment constraint, not a Skill defect.
 
-Test commands for `V0.9_testbed/` (see also `V0.9_testbed/README.md`):
+Test commands for `V0.9_testbed/` and `V1.0_testbed/` (see also each testbed's `README.md`):
 
 ```
 cd server && uv sync && uv run python -m pytest tests/ -v      # 121 tests (backend unit+integration+acceptance)
@@ -139,6 +147,11 @@ cd client && npx playwright test tests/acceptance/              # 5 tests
 ```
 
 `V0.7_testbed/`'s older commands (`python3 -m unittest discover`, `node --test 'tests/*.js'`) only apply to that testbed's substitute stack — don't copy them into a new testbed that uses the real one.
+
+Two practical gotchas when running the Playwright suites locally:
+
+- **`uv` is not installed on this machine**, but `client/playwright.config.ts` starts the backend with `uv --directory ../server run uvicorn …`, so `webServer` fails immediately. To run the E2E suites, temporarily point that command at the existing virtualenv (`".venv/Scripts/python.exe" -m uvicorn app.main:app --port 8000` plus `cwd: "../server"`) and **restore the file afterwards** — the checked-in config is part of the testbed artifact and should keep saying `uv`.
+- **Delete `server/data/e2e-test.db` before each Playwright run.** The config points at that fixed path and nothing resets it, so rows from the previous run accumulate and `getByText` assertions start failing on duplicates. This is the unfixed medium-severity finding described under "Current state" — a fresh DB gives 9/9 integration and 5/5 acceptance.
 
 ## When revising a version
 
