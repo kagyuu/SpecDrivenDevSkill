@@ -15,7 +15,11 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `uv --directory ../server run uvicorn app.main:app --port 8000`,
+      // スイート実行ごとに、バックエンド起動「前」にE2Eデータストアをベースラインへ復元する
+      // (docs/P006-test-plan.md「テストデータのライフサイクル方針」参照)。
+      // globalSetup は webServer 起動の「後」に走るため、この用途には使えない
+      // (起動済みバックエンドが掴んでいるDBファイルを消すことになる)。
+      command: `node scripts/reset-e2e-db.mjs && uv --directory ../server run uvicorn app.main:app --port 8000`,
       url: "http://localhost:8000/openapi.json",
       reuseExistingServer: false,
       env: { DATABASE_PATH: dbPath },
